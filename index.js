@@ -1,13 +1,16 @@
 // When you include Matter.js into your project, you get access to a Matter obj
-const { Engine, Render, Runner, World, Bodies, Body } = Matter;
+const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
 
-const cells = 15;
+const cells = 6;
 const width = 600;
 const height = 600;
 
 const unitLength = width / cells;
 
 const engine = Engine.create();
+// Turns off world gravity on Y axis
+// Prevents ball from dropping towards the bottom of the canvas
+engine.world.gravity.y = 0;
 // world is created along with the Engine obj
 // A world is a snapshot of all the different shapes we have
 const { world } = engine;
@@ -146,6 +149,7 @@ horizontals.forEach((row, rowIndex) => {
       unitLength, //width
       10, //height
       {
+        label: "wall",
         isStatic: true,
       }
     );
@@ -165,6 +169,7 @@ verticals.forEach((row, rowIndex) => {
       10,
       unitLength,
       {
+        label: "wall",
         isStatic: true,
       }
     );
@@ -179,13 +184,16 @@ const goal = Bodies.rectangle(
   unitLength * 0.7,
   unitLength * 0.7,
   {
+    label: "goal", // use to help with detecting collision w/ball
     isStatic: true,
   }
 );
 World.add(world, goal);
 
 // Draws the player
-const ball = Bodies.circle(unitLength / 2, unitLength / 2, unitLength / 4);
+const ball = Bodies.circle(unitLength / 2, unitLength / 2, unitLength / 4, {
+  label: "ball", // use to help with detecting collision w/goal
+});
 World.add(world, ball);
 
 document.addEventListener("keydown", (event) => {
@@ -204,4 +212,25 @@ document.addEventListener("keydown", (event) => {
   if (event.keyCode === 65) {
     Body.setVelocity(ball, { x: x - 5, y });
   }
+});
+
+// Win Condition
+
+Events.on(engine, "collisionStart", (event) => {
+  event.pairs.forEach((collision) => {
+    const labels = ["ball", "goal"];
+
+    if (
+      labels.includes(collision.bodyA.label) &&
+      labels.includes(collision.bodyB.label)
+    ) {
+      world.gravity.y = 1;
+      world.bodies.forEach((body) => {
+        if (body.label === "wall") {
+          // Changes the static propery of a body to false (gravity affects it)
+          Body.setStatic(body, false);
+        }
+      });
+    }
+  });
 });
