@@ -1,11 +1,13 @@
 // When you include Matter.js into your project, you get access to a Matter obj
 const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
 
-const cells = 6;
-const width = 600;
-const height = 600;
+const cellsHorizontal = 3;
+const cellsVertical = 3;
+const width = window.innerWidth;
+const height = window.innerHeight;
 
-const unitLength = width / cells;
+const unitLengthX = width / cellsHorizontal;
+const unitLengthY = height / cellsVertical;
 
 const engine = Engine.create();
 // Turns off world gravity on Y axis
@@ -22,7 +24,7 @@ const render = Render.create({
   engine: engine,
   // Dimensions for the canvas
   options: {
-    wireframes: true,
+    wireframes: false,
     width,
     height,
   },
@@ -67,20 +69,20 @@ const shuffle = (arr) => {
 };
 
 // First array creates row data, second one creates column data
-const grid = Array(cells)
+const grid = Array(cellsVertical)
   .fill(null)
-  .map(() => Array(cells).fill(false));
+  .map(() => Array(cellsHorizontal).fill(false));
 
-const verticals = Array(cells)
+const verticals = Array(cellsVertical)
   .fill(null)
-  .map(() => Array(cells - 1).fill(false));
+  .map(() => Array(cellsHorizontal - 1).fill(false));
 
-const horizontals = Array(cells - 1)
+const horizontals = Array(cellsVertical - 1)
   .fill(null)
-  .map(() => Array(cells).fill(false));
+  .map(() => Array(cellsHorizontal).fill(false));
 
-const startRow = Math.floor(Math.random() * cells);
-const startColumn = Math.floor(Math.random() * cells);
+const startRow = Math.floor(Math.random() * cellsVertical);
+const startColumn = Math.floor(Math.random() * cellsHorizontal);
 
 // This determines the path of the maze, which is randomly generated
 const stepThroughCell = (row, column) => {
@@ -107,9 +109,9 @@ const stepThroughCell = (row, column) => {
     // See if that neighbor is our of bounds
     if (
       nextRow < 0 ||
-      nextRow >= cells ||
+      nextRow >= cellsVertical ||
       nextColumn < 0 ||
-      nextColumn >= cells
+      nextColumn >= cellsHorizontal
     ) {
       continue;
     }
@@ -144,13 +146,16 @@ horizontals.forEach((row, rowIndex) => {
     }
 
     const wall = Bodies.rectangle(
-      columnIndex * unitLength + unitLength / 2, //posX
-      rowIndex * unitLength + unitLength, //posY
-      unitLength, //width
-      10, //height
+      columnIndex * unitLengthX + unitLengthX / 2, //posX
+      rowIndex * unitLengthY + unitLengthY, //posY
+      unitLengthX, //width
+      5, //height
       {
         label: "wall",
         isStatic: true,
+        render: {
+          fillStyle: "orange",
+        },
       }
     );
     World.add(world, wall);
@@ -164,13 +169,16 @@ verticals.forEach((row, rowIndex) => {
     }
 
     const wall = Bodies.rectangle(
-      columnIndex * unitLength + unitLength,
-      rowIndex * unitLength + unitLength / 2,
-      10,
-      unitLength,
+      columnIndex * unitLengthX + unitLengthX,
+      rowIndex * unitLengthY + unitLengthY / 2,
+      5,
+      unitLengthY,
       {
         label: "wall",
         isStatic: true,
+        render: {
+          fillStyle: "orange",
+        },
       }
     );
     World.add(world, wall);
@@ -179,20 +187,27 @@ verticals.forEach((row, rowIndex) => {
 
 // Draws the goal
 const goal = Bodies.rectangle(
-  width - unitLength / 2,
-  height - unitLength / 2,
-  unitLength * 0.7,
-  unitLength * 0.7,
+  width - unitLengthX / 2,
+  height - unitLengthY / 2,
+  unitLengthX * 0.7,
+  unitLengthY * 0.7,
   {
     label: "goal", // use to help with detecting collision w/ball
     isStatic: true,
+    render: {
+      fillStyle: "green",
+    },
   }
 );
 World.add(world, goal);
 
 // Draws the player
-const ball = Bodies.circle(unitLength / 2, unitLength / 2, unitLength / 4, {
+const ballRadius = Math.min(unitLengthX, unitLengthY) / 4;
+const ball = Bodies.circle(unitLengthX / 2, unitLengthY / 2, ballRadius, {
   label: "ball", // use to help with detecting collision w/goal
+  render: {
+    fillStyle: "yellow",
+  },
 });
 World.add(world, ball);
 
@@ -224,6 +239,11 @@ Events.on(engine, "collisionStart", (event) => {
       labels.includes(collision.bodyA.label) &&
       labels.includes(collision.bodyB.label)
     ) {
+      // When a player wins, all the walls will collapse to the bottom.
+      // This is done by labeling each wall with 'wall', looping through
+      // all objects labeled with 'wall', and then setting isStatic to false.
+      // Also, a message is displayed.
+      document.querySelector(".winner").classList.remove("hidden");
       world.gravity.y = 1;
       world.bodies.forEach((body) => {
         if (body.label === "wall") {
