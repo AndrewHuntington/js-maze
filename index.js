@@ -1,8 +1,8 @@
 // When you include Matter.js into your project, you get access to a Matter obj
 const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
 
-const cellsHorizontal = 3;
-const cellsVertical = 3;
+const cellsHorizontal = 10;
+const cellsVertical = 15;
 const width = window.innerWidth;
 const height = window.innerHeight;
 
